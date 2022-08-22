@@ -1,0 +1,7 @@
+**/*.pyc
+**/.ipynb_checkpoints
+/.venv
+/.python-version
+/poetry.lock
+/pyproject.toml
+/developer
