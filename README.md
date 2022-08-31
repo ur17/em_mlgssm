@@ -20,6 +20,13 @@ python -m unittest discover -v
 ## Usage
 ```python
 from em_mlgssm.mlgssm import EM_mlgssm
+from em_mlgssm.mlgssm import get_initial_value
+
+
+# get init parameters
+init_params = get_initial_value(
+    dataset = dataset, time = time, cluster_num = 3, state_dim = 2
+)
 
 
 model = EM_mlgssm(
@@ -29,14 +36,18 @@ model = EM_mlgssm(
 
 # initialization
 model.param_init(
-    random_param_init = "default"
+    state_mat = init_params[0], state_cov = init_params[1], 
+    obs_mat = init_params[2], obs_cov = init_params[3],
+    init_state_mean = init_params[4], init_state_cov = init_params[5], 
+    weights = init_params[6],
+    random_param_init = False
 )
 model.kalman_init()
 
 # training
 max_iter = 100
 summary = model.training(
-    dataset, 
+    dataset = dataset, 
     max_iter = max_iter
 )
 
