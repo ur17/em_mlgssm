@@ -4,11 +4,6 @@
 
 In the preprint ([arXiv](https://arxiv.org/abs/2208.11907)), I proposed a novel model-based time series clustering method with mixtures of linear Gaussian state space models (MLGSSMs), as a corresponding author. This repository contains [Python code of learning algorithm for MLGSSMs](https://github.com/ur17/em_mlgssm/tree/main/em_mlgssm/mlgssm).
 
-## Requirements
-* Python3
-* numpy
-* scipy
-* pykalman
 
 ## Installation 
 ```bash
