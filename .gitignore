@@ -1,7 +1,9 @@
 **/*.pyc
+**/*.egg-info
+/venv
+/build
+/dist
 **/.ipynb_checkpoints
-/.venv
 /.python-version
 /poetry.lock
 /pyproject.toml
-/developer
