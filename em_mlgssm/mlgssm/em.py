@@ -61,7 +61,7 @@ class EM_mlgssm(object):
         elif random_param_init == False:
             self.state_mat = state_mat
             self.state_cov = state_cov
-            self.obs_mat = obs_mat
+            self.obs_mat = obs_mat.reshape(self.cluster_num, self.state_dim)
             self.obs_cov = obs_cov
             self.init_state_mean = init_state_mean
             self.init_state_cov = init_state_cov
@@ -69,17 +69,17 @@ class EM_mlgssm(object):
 
 
     def kalman_init(self):
-            self.filt_pred_mean = _make_dict(self.cluster_num)
-            self.filt_pred_cov = _make_dict(self.cluster_num)
-            self.filt_mean = _make_dict(self.cluster_num)
-            self.filt_cov = _make_dict(self.cluster_num)
-            self.filt_gain = _make_dict(self.cluster_num)
+        self.filt_pred_mean = _make_dict(self.cluster_num)
+        self.filt_pred_cov = _make_dict(self.cluster_num)
+        self.filt_mean = _make_dict(self.cluster_num)
+        self.filt_cov = _make_dict(self.cluster_num)
+        self.filt_gain = _make_dict(self.cluster_num)
 
-            self.smooth_mean = _make_dict(self.cluster_num)
-            self.smooth_cov = _make_dict(self.cluster_num)
-            self.smooth_gain = _make_dict(self.cluster_num)
+        self.smooth_mean = _make_dict(self.cluster_num)
+        self.smooth_cov = _make_dict(self.cluster_num)
+        self.smooth_gain = _make_dict(self.cluster_num)
 
-            self.posterior_prob = np.zeros((self.N, self.cluster_num))
+        self.posterior_prob = np.zeros((self.N, self.cluster_num))
 
 
     def kalman_filter(self, dataset):
@@ -182,7 +182,8 @@ class EM_mlgssm(object):
 
     def compute_mlgssm_loglikelihoods(self, dataset):
         loglikelihood = _compute_mlgssm_likelihoods(
-            dataset, self.obs_mat, self.obs_cov, self.weights, 
+            dataset, self.cluster_num, self.state_dim, self.obs_dim,
+            self.obs_mat, self.obs_cov, self.weights, 
             self.filt_pred_mean, self.filt_pred_cov
         )
 
@@ -301,7 +302,7 @@ class EM_mlgssm(object):
                 self.e_step(dataset)
 
                 if self.loglikelihood == True:
-                    loglikelihood_list.append(self.compute_loglikelihoods(dataset))
+                    loglikelihood_list.append(self.compute_mlgssm_loglikelihoods(dataset))
 
                 pred = np.argmax(self.posterior_prob, axis=1)
                 c = collections.Counter(pred)
@@ -322,7 +323,7 @@ class EM_mlgssm(object):
                 param = self.m_step(dataset)
                 self.e_step(dataset)
 
-                loglikelihood_list.append(self.compute_loglikelihoods(dataset))
+                loglikelihood_list.append(self.compute_mlgssm_loglikelihoods(dataset))
 
                 pred = np.argmax(self.posterior_prob, axis=1)
                 c = collections.Counter(pred)
@@ -345,11 +346,11 @@ class EM_mlgssm(object):
 
         elif epsilon_param > 0 and epsilon_ll < 0:
             for i in range(max_iter):
-                param = self.e_step(dataset)
-                self.m_step(dataset)
+                param = self.m_step(dataset)
+                self.e_step(dataset)
 
                 if self.loglikelihood== True:
-                    loglikelihood_list.append(self.compute_loglikelihoods(dataset))
+                    loglikelihood_list.append(self.compute_mlgssm_loglikelihoods(dataset))
 
                 pred = np.argmax(self.posterior_prob, axis=1)
                 c = collections.Counter(pred)
