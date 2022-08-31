@@ -23,14 +23,15 @@ from em_mlgssm.mlgssm import EM_mlgssm
 
 
 model = EM_mlgssm(
-    cluster_num = K, data_len = N, time_len = T, 
+    cluster_num = K, data_num = N, time_len = T, 
     state_dim = d_x, obs_dim = d_y
 )
 
-# set initial parameters
+# initialization
 model.param_init(
     random_param_init = "default"
 )
+model.kalman_init()
 
 # training
 max_iter = 100
