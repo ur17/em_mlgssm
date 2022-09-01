@@ -1,7 +1,7 @@
 from setuptools import setup
 from pathlib import Path
 
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 
 with Path('requirements.txt').open() as f:
     INSTALL_REQUIRES = [line.strip() for line in f.readlines() if line]

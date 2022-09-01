@@ -4,11 +4,11 @@ from pykalman.standard import _loglikelihoods
 
 
 def _compute_mlgssm_likelihoods(
-    dataset, obs_mat, obs_cov, weight, 
+    dataset, cluster_num, state_dim, obs_dim,
+    obs_mat, obs_cov, weight, 
     filter_predicted_mean, filter_predicted_cov):
 
     data_len, _, _ = dataset.shape
-    cluster_num, obs_dim, state_dim = obs_mat.shape
 
     loglikelihood_list = []
     for i in range(data_len):
