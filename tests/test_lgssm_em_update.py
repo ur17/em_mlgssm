@@ -7,12 +7,16 @@ from pykalman.standard import _em_transition_matrix
 from pykalman.standard import _em_transition_covariance
 from pykalman.standard import _em_observation_matrix
 from pykalman.standard import _em_observation_covariance
+from pykalman.standard import _em_transition_offset
+from pykalman.standard import _em_observation_offset
 
 from em_mlgssm.lgssm.e_step import _compute_statistics_for_estep
 from em_mlgssm.lgssm.m_step import _update_state_mat
 from em_mlgssm.lgssm.m_step import _update_state_cov
 from em_mlgssm.lgssm.m_step import _update_obs_mat
 from em_mlgssm.lgssm.m_step import _update_obs_cov
+from em_mlgssm.lgssm.m_step import _update_input_state_mat
+from em_mlgssm.lgssm.m_step import _update_input_obs_mat
 
 
 
@@ -42,6 +46,16 @@ class Test_lgssm_EM_steps(unittest.TestCase):
                 self.e_zn[0].reshape(self.obs_dim, self.state_dim)
             )
         )
+
+        self.input_state_series = np.asarray([0.5, 0.5, 0.5, 0.5, 0.5])
+        self.input_obs_series = np.asarray([0.5, 0.5, 0.5, 0.5, 0.5])
+        self.input_state_mat = np.asarray([
+            [1, 1]
+        ])
+        self.input_obs_mat = np.asarray([1])
+
+        self.input_state_series_fix = np.asarray([1, 1, 1, 1, 1])
+        self.input_obs_series_fix = np.asarray([1, 1, 1, 1, 1])
         
 
     def test_compute_statistics_for_estep(self):
@@ -59,9 +73,20 @@ class Test_lgssm_EM_steps(unittest.TestCase):
     def test_update_state_mat(self):
         state_mat = _update_state_mat(self.e_znzn, self.e_znzn_1)
         test_state_mat = _em_transition_matrix(
-            np.zeros(self.state_dim), self.e_zn, self.smooth_state_covs, self.smooth_state_covs
+            np.zeros(self.state_dim), self.e_zn, 
+            self.smooth_state_covs, self.smooth_state_covs
         )
+        npt.assert_array_almost_equal(state_mat, test_state_mat, decimal=8)
 
+
+        state_mat = _update_state_mat(
+            self.e_znzn, self.e_znzn_1, 
+            self.e_zn, self.input_state_mat, self.input_state_series
+        )
+        test_state_mat = _em_transition_matrix(
+            np.asarray([0.5, 0.5]), self.e_zn, 
+            self.smooth_state_covs, self.smooth_state_covs
+        )
         npt.assert_array_almost_equal(state_mat, test_state_mat, decimal=8)
 
 
@@ -70,7 +95,15 @@ class Test_lgssm_EM_steps(unittest.TestCase):
         test_state_cov = _em_transition_covariance(
             self.state_mat, np.zeros(self.state_dim), self.e_zn, self.smooth_state_covs, self.smooth_state_covs
         )
+        npt.assert_array_almost_equal(state_cov, test_state_cov, decimal=8)
 
+        state_cov = _update_state_cov(
+            self.state_mat, self.e_znzn, self.e_znzn_1,
+            self.e_zn, self.input_state_mat, self.input_state_series
+        )
+        test_state_cov = _em_transition_covariance(
+            self.state_mat, np.asarray([0.5, 0.5]), self.e_zn, self.smooth_state_covs, self.smooth_state_covs
+        )
         npt.assert_array_almost_equal(state_cov, test_state_cov, decimal=8)
 
 
@@ -80,7 +113,16 @@ class Test_lgssm_EM_steps(unittest.TestCase):
             self.time_series.reshape(len(self.time_series), self.obs_dim), np.zeros(self.obs_dim), 
             self.e_zn, self.smooth_state_covs
         )
+        npt.assert_array_almost_equal(obs_mat, test_obs_mat, decimal=8)
 
+        obs_mat = _update_obs_mat(
+            self.time_series, self.e_zn, self.e_znzn,
+            self.input_obs_mat, self.input_obs_series
+        )
+        test_obs_mat = _em_observation_matrix(
+            self.time_series.reshape(len(self.time_series), self.obs_dim), np.asarray([0.5]), 
+            self.e_zn, self.smooth_state_covs
+        )
         npt.assert_array_almost_equal(obs_mat, test_obs_mat, decimal=8)
 
 
@@ -90,8 +132,36 @@ class Test_lgssm_EM_steps(unittest.TestCase):
             self.time_series.reshape(len(self.time_series), self.obs_dim), np.zeros(self.obs_dim), 
             self.obs_mat.reshape(self.obs_dim, self.state_dim), self.e_zn, self.smooth_state_covs
         )
-
         npt.assert_array_almost_equal(obs_cov, test_obs_cov, decimal=8)
+
+        obs_cov = _update_obs_cov(
+            self.time_series, self.obs_mat, self.e_zn, self.e_znzn,
+            self.input_obs_mat, self.input_obs_series
+        )
+        test_obs_cov = _em_observation_covariance(
+            self.time_series.reshape(len(self.time_series), self.obs_dim), np.asarray([0.5]), 
+            self.obs_mat.reshape(self.obs_dim, self.state_dim), self.e_zn, self.smooth_state_covs
+        )
+        npt.assert_array_almost_equal(obs_cov, test_obs_cov, decimal=8)
+
+
+    def test_update_input_state_mat(self):
+        input_state_mat = _update_input_state_mat( 
+            self.state_mat, self.e_zn, self.input_state_series_fix
+        )
+        test_input_state_mat = _em_transition_offset(self.state_mat, self.e_zn)
+        npt.assert_array_almost_equal(input_state_mat, test_input_state_mat, decimal=8)
+
+
+    def test_update_input_obs_mat(self):
+        input_obs_mat = _update_input_obs_mat( 
+            self.time_series, self.input_obs_series_fix, self.obs_mat, self.e_zn
+        )
+        test_input_obs_mat = _em_observation_offset(
+            self.obs_mat.reshape(self.obs_dim, self.state_dim), self.e_zn, 
+            self.time_series.reshape(len(self.time_series), self.obs_dim)
+        ).reshape(self.obs_dim, self.obs_dim)
+        npt.assert_array_almost_equal(input_obs_mat, test_input_obs_mat, decimal=8)
 
 
 
