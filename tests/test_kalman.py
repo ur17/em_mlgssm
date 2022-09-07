@@ -42,9 +42,15 @@ class Test_filter_and_smoother(unittest.TestCase):
             [0.1, 0],
             [0, 0.1],
         ])
+
+        self.input_state_vec = np.asarray([
+            [1, 1]
+        ])
+
+        self.input_state = np.asarray([2])
         
 
-    def test_state_predicted(self):
+    def test_state_predict(self):
         (pred_state_mean, pred_state_cov) = _state_predict(
             state_mat = self.state_mat, state_cov = self.any_state_cov, 
             current_state_mean = self.any_state_mean, 
@@ -65,7 +71,30 @@ class Test_filter_and_smoother(unittest.TestCase):
         npt.assert_array_almost_equal(pred_state_cov, test_pred_state_cov, decimal=6)
 
 
-    def test_state_filtered(self):
+    def test_state_predict_with_input(self):
+        (pred_state_mean, pred_state_cov) = _state_predict(
+            state_mat = self.state_mat, state_cov = self.any_state_cov, 
+            current_state_mean = self.any_state_mean, 
+            current_state_cov = self.any_state_cov,
+            input_state_vec = self.input_state_vec, 
+            input_state = self.input_state
+        )
+
+        (test_pred_state_mean, test_pred_state_cov) = _filter_predict(
+            transition_matrix = self.state_mat, 
+            transition_covariance = self.any_state_cov,
+            transition_offset = np.asarray([[2, 2]]).reshape(self.state_dim, self.obs_dim), 
+            current_state_mean = self.any_state_mean.reshape(self.state_dim, self.obs_dim),
+            current_state_covariance = self.any_state_cov
+        )
+
+        test_pred_state_mean = test_pred_state_mean.reshape(self.state_dim,)
+
+        npt.assert_array_almost_equal(pred_state_mean, test_pred_state_mean, decimal=6)
+        npt.assert_array_almost_equal(pred_state_cov, test_pred_state_cov, decimal=6)
+
+
+    def test_state_filt(self):
         (kalman_gain, filt_state_mean, 
         filt_state_cov, _, _) = _state_filter(
             obs_mat = self.obs_mat, obs_cov = self.obs_cov, 

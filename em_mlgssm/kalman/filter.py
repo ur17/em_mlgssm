@@ -3,7 +3,8 @@ from .pinv import pseudo_inverse
 
 
 def _state_predict(
-    state_mat, state_cov, current_state_mean, current_state_cov
+    state_mat, state_cov, current_state_mean, current_state_cov, 
+    input_state_vec = None, input_state = None
     ):
 
     state_mat = state_mat.reshape(max(state_mat.shape), max(state_mat.shape))
@@ -11,7 +12,17 @@ def _state_predict(
     current_state_mean = current_state_mean.reshape(max(current_state_mean.shape),)
     current_state_cov = current_state_cov.reshape(max(current_state_cov.shape), max(current_state_cov.shape))
 
-    pred_state_mean = np.dot(state_mat, current_state_mean)
+    if str(input_state_vec) == "None" and str(input_state) == "None":
+        pred_state_mean = np.dot(state_mat, current_state_mean)
+
+    else:
+        input_state = np.asarray(input_state)
+        input_state = input_state.reshape(max(input_state.shape),)
+        input_state_vec = input_state_vec.reshape(max(state_mat.shape), max(input_state.shape))
+        pred_state_mean = (
+            np.dot(state_mat, current_state_mean) 
+            + np.dot(input_state_vec, input_state)
+        )
 
     pred_state_cov = (
         np.dot(state_mat, np.dot(current_state_cov, state_mat.T)) 
