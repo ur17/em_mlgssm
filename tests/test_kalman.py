@@ -47,7 +47,9 @@ class Test_filter_and_smoother(unittest.TestCase):
             [1, 1]
         ])
 
-        self.input_state = np.asarray([2])
+        self.input_obs_vec = np.asarray([1])
+
+        self.input = np.asarray([2])
         
 
     def test_state_predict(self):
@@ -77,7 +79,7 @@ class Test_filter_and_smoother(unittest.TestCase):
             current_state_mean = self.any_state_mean, 
             current_state_cov = self.any_state_cov,
             input_state_vec = self.input_state_vec, 
-            input_state = self.input_state
+            input_state = self.input
         )
 
         (test_pred_state_mean, test_pred_state_cov) = _filter_predict(
@@ -94,7 +96,7 @@ class Test_filter_and_smoother(unittest.TestCase):
         npt.assert_array_almost_equal(pred_state_cov, test_pred_state_cov, decimal=6)
 
 
-    def test_state_filt(self):
+    def test_state_filter(self):
         (kalman_gain, filt_state_mean, 
         filt_state_cov, _, _) = _state_filter(
             obs_mat = self.obs_mat, obs_cov = self.obs_cov, 
@@ -108,6 +110,32 @@ class Test_filter_and_smoother(unittest.TestCase):
             observation_matrix = self.obs_mat.reshape(self.obs_dim, self.state_dim), 
             observation_covariance = self.obs_cov,
             observation_offset = np.zeros(self.obs_dim), 
+            predicted_state_mean = self.any_state_mean.reshape(self.state_dim,),
+            predicted_state_covariance = self.any_state_cov, 
+            observation = self.obs
+        )
+
+        npt.assert_array_almost_equal(kalman_gain, test_kalman_gain, decimal=8)
+        npt.assert_array_almost_equal(filt_state_mean, test_filt_state_mean, decimal=8)
+        npt.assert_array_almost_equal(filt_state_cov, test_filt_state_cov, decimal=8)
+
+
+    def test_state_filter_with_input(self):
+        (kalman_gain, filt_state_mean, 
+        filt_state_cov, _, _) = _state_filter(
+            obs_mat = self.obs_mat, obs_cov = self.obs_cov, 
+            predicted_state_mean = self.any_state_mean, 
+            predicted_state_cov = self.any_state_cov, 
+            obs = self.obs,
+            input_obs_vec = self.input_obs_vec, 
+            input_obs = self.input
+        )
+
+        (test_kalman_gain, test_filt_state_mean, 
+        test_filt_state_cov) = _filter_correct(
+            observation_matrix = self.obs_mat.reshape(self.obs_dim, self.state_dim), 
+            observation_covariance = self.obs_cov,
+            observation_offset = np.asarray([2]), 
             predicted_state_mean = self.any_state_mean.reshape(self.state_dim,),
             predicted_state_covariance = self.any_state_cov, 
             observation = self.obs

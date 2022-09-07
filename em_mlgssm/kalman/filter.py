@@ -33,7 +33,8 @@ def _state_predict(
 
 
 def _obs_predict(
-    obs_mat, obs_cov, predicted_state_mean, predicted_state_cov
+    obs_mat, obs_cov, predicted_state_mean, predicted_state_cov,
+    input_obs_vec = None, input_obs = None
     ):
 
     obs_mat = obs_mat.reshape(1, max(obs_mat.shape))
@@ -41,7 +42,17 @@ def _obs_predict(
     predicted_state_mean = predicted_state_mean.reshape(max(predicted_state_mean.shape),)
     predicted_state_cov = predicted_state_cov.reshape(max(predicted_state_cov.shape), max(predicted_state_cov.shape))
 
-    pred_obs_mean = np.dot(obs_mat, predicted_state_mean)
+    if str(input_obs_vec) == "None" and str(input_obs) == "None":
+        pred_obs_mean = np.dot(obs_mat, predicted_state_mean)
+
+    else:
+        input_obs = np.asarray(input_obs)
+        input_obs = input_obs.reshape(max(input_obs.shape),)
+        input_obs_vec = input_obs_vec.reshape(1, max(input_obs.shape))
+        pred_obs_mean = (
+            np.dot(obs_mat, predicted_state_mean) 
+            + np.dot(input_obs_vec, input_obs)
+        )
 
     pred_obs_cov = (
         np.dot(obs_mat, np.dot(predicted_state_cov, obs_mat.T)) 
@@ -52,7 +63,8 @@ def _obs_predict(
 
 
 def _state_filter(
-    obs_mat, obs_cov, predicted_state_mean, predicted_state_cov, obs
+    obs_mat, obs_cov, predicted_state_mean, predicted_state_cov, obs,
+    input_obs_vec = None, input_obs = None
     ):
 
     obs_mat = obs_mat.reshape(1, max(obs_mat.shape))
@@ -61,7 +73,8 @@ def _state_filter(
     predicted_state_cov = predicted_state_cov.reshape(max(predicted_state_cov.shape), max(predicted_state_cov.shape))
 
     (pred_obs_mean, pred_obs_cov) = _obs_predict(
-        obs_mat, obs_cov, predicted_state_mean, predicted_state_cov
+        obs_mat, obs_cov, predicted_state_mean, predicted_state_cov,
+        input_obs_vec, input_obs
     )
 
     kalman_gain = np.dot(
