@@ -16,6 +16,12 @@ pip install -e em_mlgssm
 cd em_mlgssm
 python -m unittest discover -v
 ```
+or
+```bash
+python -m unittest tests.test_kalmanfilter_and_smoother.Test_filter_and_smoother
+python -m unittest tests.test_em_lgssm.Test_EM_lgssm
+python -m unittest tests.test_em_mlgssm.Test_EM_mlgssm
+```
 
 ## Usage
 ```python
