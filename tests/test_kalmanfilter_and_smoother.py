@@ -21,6 +21,8 @@ class Test_filter_and_smoother(unittest.TestCase):
         self.obs = 10
         self.state_dim = 2
         self.obs_dim = 1
+        self.input_state_dim = 1
+        self.input_obs_dim = 1
         self.state_mat = np.asarray([
             [1, 0],
             [0, 1],
@@ -34,12 +36,25 @@ class Test_filter_and_smoother(unittest.TestCase):
             [0.1, 0],
             [0, 0.1],
         ])
+        self.input_state_mat = np.asarray([
+            [1, 1]
+        ])
+        self.input_obs_mat = np.asarray([1])
+        self.input = np.asarray([2])
         self.time_series = np.asarray([0.2, 0.1, 0.6, 0.5, 0.9])
+        self.input_state_series = np.asarray([1, 1, 1, 1, 1])
+        self.input_obs_series = np.asarray([1, 1, 1, 1, 1])
 
         self.kf = KalmanFilter_and_Smoother(
             time_series = self.time_series, 
             state_dim = self.state_dim, 
-            obs_dim = self.obs_dim
+            obs_dim = self.obs_dim,
+            state_input = False, 
+            obs_input = False,
+            input_state_dim = self.input_state_dim,
+            input_obs_dim = self.input_obs_dim,
+            input_state_series = None, 
+            input_obs_series = None
         )
         self.kf.param_init(
             state_mat = self.state_mat, 
@@ -47,7 +62,30 @@ class Test_filter_and_smoother(unittest.TestCase):
             obs_mat = self.obs_mat, 
             obs_cov = self.obs_cov,
             init_state_mean = self.any_state_mean, 
-            init_state_cov = self.any_state_cov
+            init_state_cov = self.any_state_cov, 
+            input_state_mat = None, input_obs_mat = None
+        )
+
+        self.kf_with_input = KalmanFilter_and_Smoother(
+            time_series = self.time_series, 
+            state_dim = self.state_dim, 
+            obs_dim = self.obs_dim,
+            state_input = True, 
+            obs_input = True,
+            input_state_dim = self.input_state_dim,
+            input_obs_dim = self.input_obs_dim,
+            input_state_series = self.input_state_series, 
+            input_obs_series = self.input_obs_series
+        )
+        self.kf_with_input.param_init(
+            state_mat = self.state_mat, 
+            state_cov = self.any_state_cov, 
+            obs_mat = self.obs_mat, 
+            obs_cov = self.obs_cov,
+            init_state_mean = self.any_state_mean, 
+            init_state_cov = self.any_state_cov, 
+            input_state_mat = self.input_state_mat, 
+            input_obs_mat = self.input_obs_mat
         )
 
 
@@ -79,6 +117,44 @@ class Test_filter_and_smoother(unittest.TestCase):
             observation_matrix = self.obs_mat.reshape(self.obs_dim, self.state_dim), 
             observation_covariance = self.obs_cov,
             observation_offset = np.zeros(self.obs_dim), 
+            predicted_state_mean = test_pred_state_mean.reshape(self.state_dim,),
+            predicted_state_covariance = test_pred_state_cov, 
+            observation = self.obs
+        )
+        npt.assert_array_almost_equal(kalman_gain, test_kalman_gain, decimal=8)
+        npt.assert_array_almost_equal(filt_state_mean, test_filt_state_mean, decimal=8)
+        npt.assert_array_almost_equal(filt_state_cov, test_filt_state_cov, decimal=8)
+
+
+    def test_predict_and_filter_with_input(self):
+
+        (pred_state_mean, pred_state_cov) = self.kf_with_input._state_predict(
+            filt_state_mean = self.any_state_mean, 
+            filt_state_cov = self.any_state_cov,
+            input_state = self.input
+        )
+        (test_pred_state_mean, test_pred_state_cov) = _filter_predict(
+            transition_matrix = self.state_mat, 
+            transition_covariance = self.any_state_cov,
+            transition_offset = np.asarray([[2, 2]]).reshape(self.state_dim, self.obs_dim), 
+            current_state_mean = self.any_state_mean.reshape(self.state_dim, self.obs_dim),
+            current_state_covariance = self.any_state_cov
+        )
+        test_pred_state_mean = test_pred_state_mean.reshape(self.state_dim,)
+        npt.assert_array_almost_equal(pred_state_mean, test_pred_state_mean, decimal=8)
+        npt.assert_array_almost_equal(pred_state_cov, test_pred_state_cov, decimal=8)
+
+        (kalman_gain, filt_state_mean, 
+        filt_state_cov) = self.kf_with_input._state_filter(
+            pred_state_mean = pred_state_mean, 
+            pred_state_cov = pred_state_cov,
+            obs = self.obs, input_obs = self.input
+        )
+        (test_kalman_gain, test_filt_state_mean, 
+        test_filt_state_cov) = _filter_correct(
+            observation_matrix = self.obs_mat.reshape(self.obs_dim, self.state_dim), 
+            observation_covariance = self.obs_cov,
+            observation_offset = np.asarray([2]), 
             predicted_state_mean = test_pred_state_mean.reshape(self.state_dim,),
             predicted_state_covariance = test_pred_state_cov, 
             observation = self.obs
@@ -137,6 +213,28 @@ class Test_filter_and_smoother(unittest.TestCase):
         npt.assert_array_almost_equal(filt_state_covs, test_filt_state_cov, decimal=8)
 
 
+    def test_filtering_with_input(self):
+        (kalman_gains, filt_state_means, 
+        filt_state_covs, _, _) = self.kf_with_input.filtering()
+
+        (_, _, test_kalman_gain, test_filt_state_mean, 
+        test_filt_state_cov) = _filter(
+            transition_matrices = self.state_mat, 
+            observation_matrices = self.obs_mat.reshape(self.obs_dim, self.state_dim),
+            transition_offsets = np.asarray([[1, 1]]).reshape(self.state_dim,), 
+            observation_offsets = np.asarray([1]),
+            transition_covariance = self.any_state_cov, 
+            observation_covariance = self.obs_cov.reshape(self.obs_dim, self.obs_dim),
+            initial_state_mean = self.any_state_mean.reshape(self.state_dim,), 
+            initial_state_covariance = self.any_state_cov,
+            observations = self.time_series.reshape(len(self.time_series), 1)
+        )
+        
+        npt.assert_array_almost_equal(kalman_gains, test_kalman_gain, decimal=8)
+        npt.assert_array_almost_equal(filt_state_means, test_filt_state_mean, decimal=8)
+        npt.assert_array_almost_equal(filt_state_covs, test_filt_state_cov, decimal=8)
+
+
     def test_smoothing(self):
         (kalman_gains, filt_state_means, filt_state_covs, 
         pred_state_means, pred_state_covs) = self.kf.filtering()
@@ -177,6 +275,45 @@ class Test_filter_and_smoother(unittest.TestCase):
         npt.assert_array_almost_equal(smooth_gains, test_smooth_gain, decimal=8)
 
 
+    def test_smoothing_with_input(self):
+        (kalman_gains, filt_state_means, filt_state_covs, 
+        pred_state_means, pred_state_covs) = self.kf_with_input.filtering()
+
+        (test_pred_state_means, test_pred_state_covs, test_kalman_gains, 
+        test_filt_state_means, test_filt_state_covs) = _filter(
+            transition_matrices = self.state_mat, 
+            observation_matrices = self.obs_mat.reshape(self.obs_dim, self.state_dim),
+            transition_offsets = np.asarray([[1, 1]]).reshape(self.state_dim,), 
+            observation_offsets = np.asarray([1]),
+            transition_covariance = self.any_state_cov, 
+            observation_covariance = self.obs_cov.reshape(self.obs_dim, self.obs_dim),
+            initial_state_mean = self.any_state_mean.reshape(self.state_dim,), 
+            initial_state_covariance = self.any_state_cov,
+            observations = self.time_series.reshape(len(self.time_series), 1)
+        )
+
+        (smooth_gains, smooth_state_means, 
+        smooth_state_covs) = self.kf_with_input.smoothing(
+            filt_state_means = filt_state_means, 
+            filt_state_covs = filt_state_covs,
+            pred_state_means = pred_state_means, 
+            pred_state_covs = pred_state_covs
+        )
+
+        (test_smooth_state_means, test_smooth_state_covs, 
+        test_smooth_gains) = _smooth(
+            transition_matrices = self.state_mat, 
+            filtered_state_means = test_filt_state_means, 
+            filtered_state_covariances = test_filt_state_covs,
+            predicted_state_means = test_pred_state_means, 
+            predicted_state_covariances = test_pred_state_covs
+        )
+
+        npt.assert_array_almost_equal(smooth_state_means, test_smooth_state_means, decimal=8)
+        npt.assert_array_almost_equal(smooth_state_covs, test_smooth_state_covs, decimal=8)
+        npt.assert_array_almost_equal(smooth_gains, test_smooth_gains, decimal=8)
+
+
     def test_compute_loglikelihoods(self):
         (kalman_gains, filt_state_means, filt_state_covs, 
         pred_state_means, pred_state_covs) = self.kf.filtering()
@@ -186,6 +323,24 @@ class Test_filter_and_smoother(unittest.TestCase):
         tets_loglikelihoods = _loglikelihoods(
             observation_matrices = self.obs_mat.reshape(self.obs_dim, self.state_dim), 
             observation_offsets = np.zeros(self.obs_dim),
+            observation_covariance = self.obs_cov, 
+            predicted_state_means = pred_state_means,
+            predicted_state_covariances = pred_state_covs, 
+            observations = self.time_series.reshape(len(self.time_series), 1)
+        )
+
+        npt.assert_array_almost_equal(loglikelihood, np.sum(tets_loglikelihoods), decimal=8)
+
+
+    def test_compute_loglikelihoods_with_input(self):
+        (kalman_gains, filt_state_means, filt_state_covs, 
+        pred_state_means, pred_state_covs) = self.kf_with_input.filtering()
+
+        loglikelihood = self.kf_with_input.compute_loglikelihoods(pred_state_means, pred_state_covs)
+
+        tets_loglikelihoods = _loglikelihoods(
+            observation_matrices = self.obs_mat.reshape(self.obs_dim, self.state_dim), 
+            observation_offsets = np.asarray([1]),
             observation_covariance = self.obs_cov, 
             predicted_state_means = pred_state_means,
             predicted_state_covariances = pred_state_covs, 

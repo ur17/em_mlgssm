@@ -5,15 +5,33 @@ from em_mlgssm.utils.pinv import pseudo_inverse
 
 class KalmanFilter_and_Smoother(object):
     
-    def __init__(self, time_series, state_dim, obs_dim):
+    def __init__(self, time_series, state_dim, obs_dim,
+        state_input: bool = False, obs_input: bool = False,
+        input_state_dim: int = None, input_obs_dim: int = None,
+        input_state_series = None, input_obs_series = None):
 
         self.state_dim = state_dim
         self.obs_dim = obs_dim
+        self.state_input = state_input
+        self.obs_input = obs_input
         self.data = np.asarray(time_series).reshape(len(time_series), self.obs_dim, 1)
-    
 
+        if self.state_input:
+            self.input_state_dim = input_state_dim
+            self.input_state_data = np.asarray(
+                input_state_series
+            ).reshape(len(input_state_series), self.input_state_dim, 1)
+
+        if self.obs_input:
+            self.input_obs_dim = input_obs_dim
+            self.input_obs_data = np.asarray(
+                input_obs_series
+            ).reshape(len(input_obs_series), self.input_obs_dim, 1)
+
+    
     def param_init(self, state_mat, state_cov, obs_mat, obs_cov,
-        init_state_mean, init_state_cov):
+        init_state_mean, init_state_cov, 
+        input_state_mat = None, input_obs_mat = None):
 
         self.state_mat = state_mat.reshape(self.state_dim, self.state_dim)
         self.state_cov = state_cov.reshape(self.state_dim, self.state_dim)
@@ -22,8 +40,14 @@ class KalmanFilter_and_Smoother(object):
         self.init_state_mean = init_state_mean.reshape(self.state_dim,)
         self.init_state_cov = init_state_cov.reshape(self.state_dim, self.state_dim)
 
+        if self.state_input:
+            self.input_state_mat = input_state_mat.reshape(self.state_dim, self.input_state_dim)
 
-    def _state_predict(self, filt_state_mean, filt_state_cov):
+        if self.obs_input:
+            self.input_obs_mat = input_obs_mat.reshape(self.obs_dim, self.input_obs_dim)
+
+
+    def _state_predict(self, filt_state_mean, filt_state_cov, input_state = None):
 
         pred_state_mean = np.dot(
             self.state_mat, 
@@ -35,10 +59,17 @@ class KalmanFilter_and_Smoother(object):
             + self.state_cov
         ).reshape(self.state_dim, self.state_dim)
 
+        if self.state_input:
+            input_state = np.asarray(input_state).reshape(self.input_state_dim, 1)
+            pred_state_mean += np.dot(
+                self.input_state_mat, 
+                input_state
+            ).reshape(self.state_dim,)
+
         return (pred_state_mean, pred_state_cov)
 
 
-    def _obs_predict(self, pred_state_mean, pred_state_cov):
+    def _obs_predict(self, pred_state_mean, pred_state_cov, input_obs = None):
 
         pred_obs_mean = np.dot(
             self.obs_mat, 
@@ -50,13 +81,20 @@ class KalmanFilter_and_Smoother(object):
             + self.obs_cov
         ).reshape(self.obs_dim, self.obs_dim)
 
+        if self.obs_input:
+            input_obs = np.asarray(input_obs).reshape(self.input_obs_dim,)
+            pred_obs_mean += np.dot(
+                self.input_obs_mat, 
+                input_obs
+            ).reshape(self.obs_dim, self.obs_dim)
+
         return (pred_obs_mean, pred_obs_cov)
 
 
-    def _state_filter(self, pred_state_mean, pred_state_cov, obs):
+    def _state_filter(self, pred_state_mean, pred_state_cov, obs, input_obs = None):
 
         (pred_obs_mean, pred_obs_cov) = self._obs_predict(
-            pred_state_mean, pred_state_cov
+            pred_state_mean, pred_state_cov, input_obs
         )
 
         kalman_gain = np.dot(
@@ -77,8 +115,8 @@ class KalmanFilter_and_Smoother(object):
         return (kalman_gain, filt_state_mean, filt_state_cov)
 
     
-    def _state_smoother(self, filt_state_mean, filt_state_cov, pred_state_mean, 
-        pred_state_cov, smooth_next_state_mean, smooth_next_state_cov):
+    def _state_smoother(self, filt_state_mean, filt_state_cov, pred_state_mean, pred_state_cov,
+        smooth_next_state_mean, smooth_next_state_cov):
 
         smooth_gain = np.dot(
             filt_state_cov, 
@@ -113,19 +151,25 @@ class KalmanFilter_and_Smoother(object):
         pred_state_means = np.empty((len(self.data), self.state_dim))
         pred_state_covs = np.empty((len(self.data), self.state_dim, self.state_dim))
 
+        if not self.state_input:
+            self.input_state_data = np.empty(len(self.data))
+        
+        if not self.obs_input:
+            self.input_obs_data = np.empty(len(self.data))
+
         pred_state_means[0], pred_state_covs[0] = self.init_state_mean, self.init_state_cov
         for t in range(len(self.data)-1):
             (kalman_gains[t], filt_state_means[t], 
             filt_state_covs[t]) = self._state_filter( 
-                pred_state_means[t], pred_state_covs[t], self.data[t]
+                pred_state_means[t], pred_state_covs[t], self.data[t], self.input_obs_data[t]
             )
 
             (pred_state_means[t+1], pred_state_covs[t+1]) = self._state_predict(
-                filt_state_means[t], filt_state_covs[t]
+                filt_state_means[t], filt_state_covs[t], self.input_state_data[t]
             )
         (kalman_gains[-1], filt_state_means[-1], 
         filt_state_covs[-1]) = self._state_filter( 
-            pred_state_means[-1], pred_state_covs[-1], self.data[-1]
+            pred_state_means[-1], pred_state_covs[-1], self.data[-1], self.input_obs_data[-1]
         )
 
         return (kalman_gains, filt_state_means, filt_state_covs, pred_state_means, pred_state_covs)
@@ -166,11 +210,15 @@ class KalmanFilter_and_Smoother(object):
 
         pred_state_means = pred_state_means.reshape(len(self.data), self.state_dim, 1)
 
-        pred_obs_means = np.einsum("ij,njl->nil", self.obs_mat, pred_state_means)     
+        pred_obs_means = np.einsum("ij,njl->nil", self.obs_mat, pred_state_means)
+        if self.obs_input:
+            pred_obs_means += np.einsum("ij,njl->nil", self.input_obs_mat, self.input_obs_data)
+            
         pred_obs_covs = (
             np.einsum("ij,njl,kl->nik", self.obs_mat, pred_state_covs, self.obs_mat) 
             + self.obs_cov
         )
+        
         root_covs = np.sqrt(pred_obs_covs)
 
         log_exp = - 0.5 * (self.data - pred_obs_means)**2 / pred_obs_covs
