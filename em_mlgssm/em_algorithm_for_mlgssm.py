@@ -21,10 +21,8 @@ class EM_mlgssm(object):
         ).reshape(self.data_num, self.time_num, self.obs_dim, 1)
 
     
-    def param_init(self,
-        state_mats, state_covs, obs_mats, obs_covs, 
-        init_state_means, init_state_covs, weights
-        ):
+    def param_init(self, state_mats, state_covs, obs_mats, obs_covs, 
+        init_state_means, init_state_covs, weights):
 
         self.state_mats = np.asarray(
             state_mats.copy()
