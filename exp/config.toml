@@ -1,0 +1,97 @@
+[clustering_and_parameter_estimation]
+DATA_DIR = "data/simulated_dataset.npy"
+LABEL_DIR = "data/simulated_label.npy"
+NUM_CLUSTER = 3
+DIM_X = 2
+DIM_Y = 1
+NUM_DATA = 60
+LENGTH = 1000
+NUM_CPU = 10
+NUM_LGSSM = [10,20,30,40,50]
+MAX_ITER = 20
+EPSILON = 0.01
+FIX = ['C']
+NUM_PERFORM = 6
+
+[model_selection]
+DATA_DIR = "data/simulated_dataset.npy"
+LABEL_DIR = "data/simulated_label.npy"
+NUM_CLUSTER = [2,3,4,5]
+DIM_X = [2,3,4]
+DIM_Y = 1
+NUM_DATA = 60
+LENGTH = 1000
+NUM_CPU = 10
+NUM_LGSSM = 10
+MAX_ITER = 20
+EPSILON = 0.01
+FIX = ['C']
+NUM_PERFORM = 10
+
+[ecg]
+DATA_DIR = "data/ecg_dataset.npy"
+LABEL_DIR = "data/ecg_label.npy"
+NUM_CLUSTER = [2,3,4]
+DIM_X = [2,3,4,5,6]
+DIM_Y = 1
+NUM_DATA = 43
+LENGTH = 509
+NUM_CPU = 10
+NUM_LGSSM = 25
+MAX_ITER = 50
+EPSILON = 0.01
+FIX = ['C']
+MAX_BIC_NUM_CLUSTER = 2
+MAX_BIC_DIM_X = 5
+NUM_PERFORM = 10
+
+[income]
+DATA_DIR = "data/income_dataset.npy"
+LABEL_DIR = "data/income_label.npy"
+NUM_CLUSTER = [2,3,4]
+DIM_X = [2,3,4,5,6]
+DIM_Y = 1
+NUM_DATA = 25
+LENGTH = 70
+NUM_CPU = 10
+NUM_LGSSM = 15
+MAX_ITER = 50
+EPSILON = 0.01
+FIX = ['C']
+MAX_BIC_NUM_CLUSTER = 2
+MAX_BIC_DIM_X = 5
+NUM_PERFORM = 10
+
+[temperature]
+DATA_DIR = "data/temperature_dataset.npy"
+LABEL_DIR = "data/temperature_label.npy"
+NUM_CLUSTER = [2,3,4]
+DIM_X = [2,3,4,5,6]
+DIM_Y = 1
+NUM_DATA = 30
+LENGTH = 365
+NUM_CPU = 10
+NUM_LGSSM = 10
+MAX_ITER = 50
+EPSILON = 0.01
+FIX = ['C']
+MAX_BIC_NUM_CLUSTER = 2
+MAX_BIC_DIM_X = 5
+NUM_PERFORM = 10
+
+[population]
+DATA_DIR = "data/population_dataset.npy"
+LABEL_DIR = "data/population_label.npy"
+NUM_CLUSTER = [2,3,4]
+DIM_X = [2,3,4,5,6]
+DIM_Y = 1
+NUM_DATA = 20
+LENGTH = 100
+NUM_CPU = 10
+NUM_LGSSM = 30
+MAX_ITER = 50
+EPSILON = 0.1
+FIX = ['C']
+MAX_BIC_NUM_CLUSTER = 2
+MAX_BIC_DIM_X = 3
+NUM_PERFORM = 10
