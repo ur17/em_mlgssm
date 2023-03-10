@@ -431,4 +431,4 @@ class KalmanFS(object):
                 * 
                 (2 * np.pi)**self.d_y
             )
-            return np.sum(exp * coef, axis=0)
+            return np.prod(exp * coef, axis=0)

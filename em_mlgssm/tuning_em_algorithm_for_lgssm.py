@@ -114,7 +114,7 @@ class TuningEMlgssm(object):
                 )
             )
 
-            ll_set.append(lgssm.run_e_step.compute_likelihoods(
+            ll_set.append(lgssm.run_e_step().compute_likelihoods(
                     x_means_p=lgssm.means_p, x_covs_p=lgssm.covs_p, log=True
                 )
             )
