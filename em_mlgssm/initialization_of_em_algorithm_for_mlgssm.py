@@ -160,8 +160,8 @@ class InitEMmlgssm(TuningEMlgssm):
 
         params_array = self.fit(
             y=self.set_y[index], ux=self.u_x, uy=self.u_y, 
-            max_iter=10, epsilon=0.01, fix_param=self.fix, 
-            n_lgssm=10, random_state=self.seed
+            max_iter=self.iter, epsilon=self.epsilon, fix_param=self.fix, 
+            n_lgssm=self.m, random_state=self.seed
         )
 
         params_vec = self._array_to_vec(params_array)
@@ -239,17 +239,20 @@ class InitEMmlgssm(TuningEMlgssm):
         self.set_y = Y
         self.u_x = ux
         self.u_y = uy
+        self.iter = max_iter
+        self.epsilon = epsilon
         self.fix = fix_param
+        self.m = n_lgssm
         self.seed = random_state
         
         results = []
         if self.cores==1:
-            for j in range(n_lgssm):
+            for j in range(len(self.set_y)):
                 results.append(self._tuning(j))
         elif self.cores>1:
             # Multiprocessing
             with mp.Pool(self.cores) as pool:
-                async_result = pool.map_async(self._tuning, range(n_lgssm))
+                async_result = pool.map_async(self._tuning, range(len(self.set_y)))
                 results = async_result.get()
         else:
             raise  ValueError('n_cpu must be positive integer.')
